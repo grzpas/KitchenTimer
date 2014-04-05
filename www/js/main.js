@@ -1,5 +1,2 @@
-<!--(function() {
-    alert('Hello Greg');
 
-})();-->
 
