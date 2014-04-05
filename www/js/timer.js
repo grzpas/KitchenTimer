@@ -159,8 +159,7 @@ $(document).ready(function() {
                                 // if time difference is 0 end countdown
                                 $.APP.endTimer(function(){
                                     $.APP.resetTimer();
-                                   ;
-                                    //src = "http://audio.ibeat.org/content/p1rj1s/p1rj1s_-_rockGuitar.mp3";
+                                    src = "http://audio.ibeat.org/content/p1rj1s/p1rj1s_-_rockGuitar.mp3";
                                     var media = new Media(src, onSuccess, null, null // success callback
                                            );
                                     function onSuccess() {
