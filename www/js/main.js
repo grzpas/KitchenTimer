@@ -1,18 +1,5 @@
-//Initialize function
-var init = function () {
-    // are we running in native app or in a browser?
-    window.isphone = true;
-    /*if(document.URL.indexOf("http://") === -1
-        && document.URL.indexOf("https://") === -1) {
-        window.isphone = true;
-    }*/
-
-    if( window.isphone ) {
-        document.addEventListener("deviceready", onDeviceReady, false);
-    } else {
-        onDeviceReady();
-    }
-
+    
+    document.addEventListener("deviceready", onDeviceReady, false);
     function onDeviceReady() {
         var checkHour;
         var checkMinute;
@@ -276,6 +263,3 @@ var init = function () {
         })(jQuery);
 
     }
-
-};
-$(document).ready(init);
