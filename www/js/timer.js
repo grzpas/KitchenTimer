@@ -268,6 +268,7 @@ $(document).ready(function() {
         
         $('#sw_stop,#cd_stop').live('click', function() {
             $.APP.stopTimer();
+            navigator.notification.alert('You clicked Stop button', function onSuccess() {}, "Click", "Ok");
         });
         
         $('#sw_reset,#cd_reset').live('click', function() {
