@@ -1,11 +1,11 @@
 //Initialize function
 var init = function () {
     // are we running in native app or in a browser?
-    window.isphone = false;
-    if(document.URL.indexOf("http://") === -1
+    window.isphone = true;
+    /*if(document.URL.indexOf("http://") === -1
         && document.URL.indexOf("https://") === -1) {
         window.isphone = true;
-    }
+    }*/
 
     if( window.isphone ) {
         document.addEventListener("deviceready", onDeviceReady, false);
@@ -161,19 +161,15 @@ var init = function () {
                                     // if time difference is 0 end countdown
                                     $.APP.endTimer(function(){
                                         $.APP.resetTimer();
+
                                         src = "http://audio.ibeat.org/content/p1rj1s/p1rj1s_-_rockGuitar.mp3";
-                                        var media = new Media(src, onSuccess, null, null // success callback
-                                        );
                                         function onSuccess() {
                                             console.log("playAudio():Audio Success");
 
                                         }
-
-                                        $.mobile.changePage('#popup', {transition: 'pop', role: 'dialog'});
-                                        media.setVolume('1.0');
+                                        var media = new Media(src, onSuccess, null, null, null);
                                         media.play();
-
-
+                                        //$.mobile.changePage('#popup', {transition: 'pop', role: 'dialog'});
                                         $('#' + $.APP.dir + '_status').html('Ended & Reset');
 
                                     });
