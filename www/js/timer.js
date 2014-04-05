@@ -258,7 +258,8 @@ $(document).ready(function() {
         	inputTime = checkHour + checkMinute + checkSecond;
 
         	if (inputTime==0){
-        	   alert('Please enter at least one value');
+                navigator.notification.alert('Please enter at least one value 2', function onSuccess() {}, "Click", "Ok");
+        	   //alert('Please enter at least one value');
            }
            else{
         	   $.APP.startTimer('cd', inputTime);
@@ -268,7 +269,6 @@ $(document).ready(function() {
         
         $('#sw_stop,#cd_stop').live('click', function() {
             $.APP.stopTimer();
-            navigator.notification.alert('You clicked Stop button', function onSuccess() {}, "Click", "Ok");
         });
         
         $('#sw_reset,#cd_reset').live('click', function() {
