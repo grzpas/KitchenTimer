@@ -1,4 +1,5 @@
-    
+(function() {
+    alert('Hello Greg');
     document.addEventListener("deviceready", onDeviceReady, false);
     function onDeviceReady() {
         var checkHour;
@@ -263,3 +264,5 @@
         })(jQuery);
 
     }
+})();
+
