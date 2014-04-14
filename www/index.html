@@ -4,11 +4,197 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Kitchen Timer</title>
-    <link rel="stylesheet" href="./css/jquery.mobile-1.3.0.css"/>
-    <script type="text/javascript" src="./js/jquery-1.8.3.js"></script>
-    <script type="text/javascript" src="./js/jquery.mobile-1.3.0.js"></script>
+    <link rel="stylesheet" href="css/jquery.mobile-1.3.0.css"/>
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/shake.css" />
+    <script type="text/javascript" src="js/jquery-1.8.3.js"></script>
+    <script type="text/javascript" src="js/jquery.mobile-1.3.0.js"></script>
+    <script type="text/javascript" src="js/jquery.validate.js"></script>
+    <!--<script type="text/javascript" src="js/cordova.js"></script>-->
+    <script type="text/javascript" src="js/timer.js"></script>
+    <script type="text/javascript" src="js/utils.js"></script>
+    <script type="text/javascript" src="js/database.js"></script>
+    <script type="text/javascript">
+        var db;
+        document.addEventListener("deviceready", onDeviceReady, false);
+        function onDeviceReady(){
+            navigator.notification.alert(
+                    'You are the winner!',  // message
+                    function() {
+                        alert('notification.alert failed')
+                    },         // callback
+                    'Game Over',            // title
+                    'Done'                  // buttonName
+            );
+            db = window.openDatabase("Database", "1.0", "Timer", 200000);
+            createTimerTableIfNotExists(db).done(function(){})
+            wireUpEvents();
+        }
+
+        function wireUpEvents() {
+            <!--quick page start-->
+            $('#quick-startBtn').live('click', function() {
+                $("#quick-form").valid();
+
+                var inputTime = getTimeInSecondsFromTimeInput('#quick-timeInput');
+                $.APP.startTimer('#quick-hoursDisplay', '#quick-minutesDisplay', '#quick-secondsDisplay', inputTime, function() {
+                    playSound('quick-sound');
+                });
+            });
+
+            $('#quick-resetBtn').live('click', function() {
+                $.APP.resetTimer();
+            });
+
+            $('#quick-pauseBtn').live('click', function() {
+                $.APP.pauseTimer();
+            });
+
+
+            <!--quick page end-->
+
+
+            $("#chef-main").live("pageshow", function(){
+                $("#chef-main-timerList").html('');
+                getAllTimers(db).done(function(rs) {
+                            var content = getListViewContent(rs);
+                            $("#chef-main-timerList").append(content).listview('refresh');}
+                );
+
+            });
+
+            $("#chef-main-addNewTimerBtn").bind ("click", function (event){
+                $("#chef-addNewOrEdit-header").html("Add New Timer");
+                resetForm('#chef-addNewOrEdit-form');
+                $.mobile.changePage ($("#chef-addNewOrEdit"), { transition : "slide", reverse : true });
+            });
+
+            $("#chef-main-refreshTimersBtn").bind ("click", function (event){
+                $("#chef-main-timerList").html('');
+                getAllTimers(db).done(function(rs) {
+                            var content = getListViewContent(rs);
+                            $("#chef-main-timerList").append(content).listview('refresh');
+
+                        }
+
+                )
+            });
+
+            $("#chef-main [data-role='content'] ul").on('tap taphold', 'li', function (event){
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                var liId = this.id;
+                if (event.type === 'taphold'){
+                    navigator.notification.vibrate(30);
+                    var $popup = $('#chef-main-actionPopup');
+                    $("#chef-main-actionList").html('');
+                    $("#chef-main-actionList").append('<li id="edit&'+liId+'">Edit</li><li id="delete&'+liId+'">Delete</li>').listview('refresh');
+                    $popup.popup();
+                    $popup.popup('open');
+                }
+                else if (event.type === 'tap'){
+                    getSingleTimerData(db, liId).done(function(rs) {
+                        var row = rs.rows.item(0);
+                        $("#chef-displayData-nameHeader").html(row['name']);
+                        $("#chef-displayData-nameInput").val(row['name']);
+                        $("#chef-displayData-timeInput").val(getTimeString(row['hour'], row['minute'], row['second']));
+                        $("#chef-displayData-soundInput").val(row['src']);
+                        $.mobile.changePage($("#chef-displayData"), { transition : "slide"});
+                    })
+                }
+            });
+
+
+            $("#chef-main [data-role='popup'] ul").on('click', 'li', function (event){
+                var action_liId = this.id.split('&');
+                var action = action_liId[0];
+                var id = action_liId[1];
+                if (action == 'edit'){
+                    getSingleTimerData(db, id).done(function(rs) {
+                        var row = rs.rows.item(0);
+                        $("#chef-addNewOrEdit-nameInput").val(row["name"]);
+                        $("#chef-addNewOrEdit-timeInput").val(getTimeString(row['hour'], row['minute'], row['second']));
+                        //$("#chef-addNewOrEdit-soundInput").val(row["src"]);
+                        $("#chef-addNewOrEdit-id").val(row["id"]);
+                        $("#chef-addNewOrEdit-header").html('Edit Timer');
+                        $.mobile.changePage ($("#chef-addNewOrEdit"), { transition : "slide", reverse : true });
+                    })
+
+                }
+                if (action == 'delete'){
+                    navigator.notification.confirm(
+                            'Are you sure?',
+                            function(buttonIndex){onConfirm(buttonIndex, id);},
+                            'Delete Contact',
+                            'Ok, Cancel');
+                }
+            });
+
+            function onConfirm(buttonIndex, id){
+                if (buttonIndex === 1){
+                    deleteTimerData(db, id);
+
+                }
+                $("#chef-main-timerList").html('');
+                getAllTimers(db).done(function(rs) {
+                            var content = getListViewContent(rs);
+                            $("#chef-main-timerList").append(content).listview('refresh');}
+                ); //TODO: check if this really needs to be called
+                $.mobile.changePage($("#chef-main"), { transition : "slide"});
+            }
+
+            $("#chef-addNewOrEdit-saveBtn").bind ("click", function (event){
+
+                if (!$("#chef-addNewOrEdit-form").valid())
+                    return;
+
+                var name = $("#chef-addNewOrEdit-nameInput").val();
+                var time = getTimeFromTimeInput("#chef-addNewOrEdit-timeInput");
+                var src = $("#chef-addNewOrEdit-soundInput").val().split('\\').pop();;
+
+                var id = $("#chef-addNewOrEdit-id").val();
+                $("#chef-addNewOrEdit-id").val('');
+                if (id === '') {
+                    insertNewTimerData(db, name, time.hour, time.minute, time.second, src).done(function() {
+                    })
+                }
+                else {
+                    updateTimerData(db, name, time.hour, time.minute, time.second, src, id)
+                }
+                $.mobile.changePage ($("#chef-main"), { transition : "slide", reverse : true });
+
+            });
+
+            $("#chef-addNewOrEdit-backBtn").bind ("click", function (event){
+                $.mobile.changePage ($("#chef-main"), { transition : "slide", reverse : true });
+            });
+
+
+
+            $("#chef-displayData-backBtn").bind ("click", function (event){
+                stopSound('chef-displayData-soundAudio');
+                $.mobile.changePage ($("#chef-main"), { transition : "slide", reverse : true });
+            });
+
+
+            $('#chef-displayData-startBtn').live('click', function() {
+                var inputTime = getTimeInSecondsFromTimeInput('#chef-displayData-timeInput');
+                $.APP.startTimer('#chef-displayData-hoursDisplay', '#chef-displayData-minutesDisplay', '#chef-displayData-secondsDisplay', inputTime, function() {
+                    playSound('chef-displayData-soundAudio', 'chef-displayData-soundInput');
+                });
+            });
+
+            $('#chef-displayData-resetBtn').live('click', function() {
+                $.APP.resetTimer();
+            });
+
+            $('#chef-displayData-pauseBtn').live('click', function() {
+                $.APP.pauseTimer();
+            });
+
+            $.APP.endTimer();
+        }
+
+    </script>
 </head>
 <body>
     <!-- Start of first page: index -->
@@ -25,5 +211,144 @@
             <h4>Paulina Zawadzka &trade;</h4>
         </div>
     </div><!-- /page index -->
+
+    <!-- Start of first page: quick -->
+    <div data-role="page" id="quick" data-theme="b">
+        <div data-role="header" data-theme="b" data-theme="b">
+            <img src="img/logo.png" style="height:35px; width: auto; padding-top: 3px; padding-left: 10px; float:left"/>
+            <h1>Quick Timer</h1>
+        </div>
+
+        <div class="bg" data-role="content">
+            <form id="quick-form">
+                <fieldset>
+                    <div class="timerDisplay" align="center">
+                        <span id="quick-hoursDisplay">00</span>:<span id="quick-minutesDisplay">00</span>:<span id="quick-secondsDisplay">00</span>
+                    </div>
+
+                    <div data-role="fieldcontain">
+                        <label for="quick-timeInput">Time:</label>
+                        <input type="time" id="quick-timeInput" step="1" required value="00:00:00"/>
+                    </div>
+
+                    <audio src="alarm.mp3" id="quick-sound" preload="auto"></audio>
+
+                    <div data-role="fieldcontain">
+                        <div>
+                            <input value="Start" id="quick-startBtn" type="button">
+                        </div>
+                        <div>
+                            <input value="Pause" id="quick-pauseBtn" type="button">
+                        </div>
+                        <div>
+                            <input value="Reset" id="quick-resetBtn" type="button">
+                        </div>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+        <div data-role="footer" data-position="fixed" data-theme="b">
+            <h4><a onclick="window.location.href='index.html'" data-role="button" data-inline="true"
+                   data-icon="back">Back to home page</a></h4>
+        </div>
+    </div><!-- /page quick -->
+
+
+    <!--Main Page Start-->
+    <div data-role="page" id="chef-main" data-theme="b">
+        <div data-role="header" data-position="fixed" data-theme="b">
+            <a href="#" id="chef-main-refreshTimersBtn" data-role="button" data-icon="refresh" title="Refresh">Refresh</a>
+            <h1>My Timers</h1>
+            <a href="#" id="chef-main-addNewTimerBtn" data-role="button" data-icon="add" title="Add New">Add</a>
+        </div>
+
+        <div data-role="content" style="margin-top: 20px">
+            <ul data-role="listview" data-filter="true" data-filter-placeholder="Search..." id="chef-main-timerList">  </ul>
+        </div>
+        <div data-role="popup" id="chef-main-actionPopup" data-overlay-theme="a">
+            <ul data-role="listview" id="chef-main-actionList" class="actionPopup">  </ul>
+        </div>
+
+        <div data-role="footer" data-position="fixed" data-theme="b">
+            <h4><a onclick="window.location.href='index.html'" data-role="button" data-inline="true"
+                   data-icon="back">Back to home page</a></h4>
+        </div>
+    </div>
+
+    <!--Main Page End-->
+
+    <!-- Data Display Page Start -->
+    <div data-role="page" id="chef-displayData" data-theme="b">
+        <div data-role="header" data-position="fixed" data-theme="b">
+            <a href="#" id="chef-displayData-backBtn" data-role="button" data-icon="arrow-l" title="Back">Back</a>
+            <h1 id="chef-displayData-nameHeader"></h1>
+        </div>
+        <div data-role="content">
+            <form id="#chef-displayData-form">
+                <div class="timerDisplay" align="center">
+                    <span id="chef-displayData-hoursDisplay">00</span>:<span id="chef-displayData-minutesDisplay">00</span>:<span id="chef-displayData-secondsDisplay">00</span>
+                </div>
+                <div data-role="fieldcontain">
+                    <label for="chef-displayData-nameInput">Name:</label>
+                    <input type="text" id="chef-displayData-nameInput"  readonly value="" />
+                </div>
+                <div data-role="fieldcontain">
+                    <label for="chef-displayData-timeInput">Time:</label>
+                    <input type="time" id="chef-displayData-timeInput" step="1" readonly value="00:00:00"/>
+                </div>
+
+
+                <div data-role="fieldcontain">
+                    <label for="chef-displayData-soundInput">Sound:</label>
+                    <input type="text" id="chef-displayData-soundInput" readonly="readonly" value="" />
+                    <audio src="" id="chef-displayData-soundAudio"></audio>
+                </div>
+                <div data-role="fieldcontain">
+                    <div>
+                        <input value="Start" id="chef-displayData-startBtn" type="button">
+                    </div>
+                    <div>
+                        <input value="Pause" id="chef-displayData-pauseBtn" type="button">
+                    </div>
+                    <div>
+                        <input value="Reset" id="chef-displayData-resetBtn" type="button">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Data Display Page End -->
+
+    <!-- New Page Start-->
+    <div data-role="page" id="chef-addNewOrEdit"  data-theme="b">
+        <div data-role="header" data-position="fixed" data-theme="b">
+            <a href="#" id="chef-addNewOrEdit-backBtn" data-role="button" data-icon="arrow-l" title="Back">Back</a>
+            <h1 id="chef-addNewOrEdit-header"></h1>
+            <a href="#" id="chef-addNewOrEdit-saveBtn" data-role="button" data-icon="check" title="Save">Save</a>
+        </div>
+        <div data-role="content">
+            <form id="chef-addNewOrEdit-form">
+                <fieldset>
+                    <div data-role="fieldcontain">
+                        <label for="chef-addNewOrEdit-nameInput">Name:</label>
+                        <input type="text" id="chef-addNewOrEdit-nameInput" required maxlength="100" value="" />
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="chef-addNewOrEdit-timeInput">Time:</label>
+                        <input type="time" id="chef-addNewOrEdit-timeInput" step="1" required value="00:00:00"/>
+                    </div>
+                    <div data-role="fieldcontain">
+                        <label for="chef-addNewOrEdit-soundInput">Sound:</label>
+                        <input type="file" id="chef-addNewOrEdit-soundInput" required/>
+                    </div>
+                    <input type="hidden" id="chef-addNewOrEdit-id" value="" />
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    <!-- New Page End-->
+
+
 </body>
 </html>

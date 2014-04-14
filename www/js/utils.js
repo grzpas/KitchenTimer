@@ -65,6 +65,17 @@ function stopSound(fileName) {
     document.getElementById(fileName).src = '';
 }
 
+function getListViewContent(rs) {
+    var result = '';
+    for (var rowNo = 0; rowNo < rs.rows.length; rowNo++) {
+        var row = rs.rows.item(rowNo);
+
+        var htmlData = '<li id="' + row["id"] + '"><a href="#"><h2>' + row["name"] + ' [' + getTimeString(row["hour"], row["minute"],row["second"]) + ']</h2></a></li>';
+        result+=htmlData;
+    }
+    return result;
+}
+
 /*(function () {
     navigator.notification = {
         alert: function (message, callback, title, buttonCaption) {
