@@ -16,16 +16,11 @@
     <script type="text/javascript">
         var db;
         document.addEventListener("deviceready", onDeviceReady, false);
+
         function onDeviceReady(){
-            navigator.notification.alert(
-                    'You are the winner!',  // message
-                    function() {
-                        alert('notification.alert failed')
-                    },         // callback
-                    'Game Over',            // title
-                    'Done'                  // buttonName
-            );
+            alert('OnDeviceReady fired');
             db = window.openDatabase("Database", "1.0", "Timer", 200000);
+            alert('Database created');
             createTimerTableIfNotExists(db).done(function(){})
             wireUpEvents();
         }
