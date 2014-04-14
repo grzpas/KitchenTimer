@@ -6,14 +6,14 @@
         id        = "com.phonegap.lookmap"
         version   = "1.0.0">
 
-    <name>Lookmap</name>
+    <name>Kitchen Timer</name>
 
     <description>
-        Lookmap
+        Kitchen Timer
     </description>
 
-    <author href="http://www.maestro.pl" email="support@maestro.pl">
-        Maestro
+    <author email="paulina.zavi@gmail.com">
+        Paulina Zawadzka
     </author>
 
     <!--
